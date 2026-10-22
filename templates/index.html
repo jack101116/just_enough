@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_home_parts.html" import problem, steps, sustain %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero-min">
+  <h1>Plan meals. Reduce waste. Share surplus.</h1>
+  <p class="lead">Estimate how much of each dish to prepare, choose the shortage risk you accept, and plan where any surplus can go.</p>
+  <div class="button-row"><a class="btn btn-primary" href="{{ url_for('main.event_new') }}">Plan an Event</a><a class="btn btn-secondary" href="{{ url_for('main.dashboard') }}">Dashboard</a></div>
+</section>
+<section class="figures" aria-label="Planning figures from saved events">
+  <div><span class="fig-n">{{ stats.events|num }}</span><span class="fig-l">planned events</span></div>
+  <div><span class="fig-n">{{ stats.guests|num }}</span><span class="fig-l">expected guests</span></div>
+  <div><span class="fig-n">{{ stats.total_kg|num(1) }} kg</span><span class="fig-l">estimated food</span></div>
+  <div><span class="fig-n">{{ stats.surplus_kg|num(1) }} kg</span><span class="fig-l">potential surplus (estimate)</span></div>
+</section>
+{{ problem() }}
+<section class="min-steps"><h2>How it works</h2>{{ steps() }}</section>
+{{ sustain() }}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}NGO directory{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>NGO directory</h1><p class="lead">Search organisations by name or service area. No live map or availability is provided.</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('main.ngo_new') }}">Add organisation</a></header>
+<div class="alert alert-warning" role="note"><strong>Sample data.</strong> Entries labelled SAMPLE are fictional demonstration records with placeholder contact details. They are not real partners. Add and verify real organisations yourself before relying on them.</div>
+<form class="card search-bar filters" method="get" role="search">
+  <div class="field"><label for="q">Search name or area</label><input id="q" name="q" type="search" value="{{ q }}"></div>
+  <div class="field"><label for="city">City</label><select id="city" name="city"><option value="">All cities</option>{% for c in cities %}<option {{ 'selected' if c == city }}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="food">Food type</label><input id="food" name="food" value="{{ food }}" placeholder="e.g. cooked meals"></div>
+  <div class="field"><button class="btn btn-primary" type="submit">Search</button> {% if q or city or food %}<a class="btn btn-ghost" href="{{ url_for('main.ngos') }}">Clear</a>{% endif %}</div>
+</form>
+{% if ngos %}
+<section class="grid grid-3">{% for n in ngos %}
+  <article class="card ngo-card">
+    <h2><a href="{{ url_for('main.ngo_detail', ngo_id=n.id) }}">{{ n.name }}</a></h2>
+    {% if n.is_sample %}<span class="badge badge-sample">SAMPLE · fictional</span>{% else %}<span class="badge badge-muted">{{ n.source_label }}</span>{% endif %}
+    <dl class="facts"><dt>City</dt><dd>{{ n.city or '–' }}</dd><dt>Service areas</dt><dd>{{ n.service_areas or '–' }}</dd><dt>Accepts</dt><dd>{{ n.food_types or '–' }}</dd></dl>
+  </article>{% endfor %}</section>
+{% else %}<section class="card">{{ empty("No organisations match", "Try clearing the filters or add your own organisation.", url_for('main.ngo_new'), "Add organisation") }}</section>{% endif %}
+{% endblock %}

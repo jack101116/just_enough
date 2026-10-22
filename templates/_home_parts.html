@@ -1,0 +1,35 @@
+{% from "_macros.html" import stat, icon %}
+{% macro stat_cards(stats) %}
+<section class="grid grid-4 home-stats" aria-label="Planning figures from saved events">
+  {{ stat("Planned events", stats.events|num, "saved in the database", "calendar") }}
+  {{ stat("Expected guests", stats.guests|num, "across all events", "users") }}
+  {{ stat("Estimated food", stats.total_kg|num(1) ~ " kg", "recommended to prepare", "scale") }}
+  {{ stat("Potential surplus", stats.surplus_kg|num(1) ~ " kg", "expected leftover (estimate)", "leaf", "tone-accent") }}
+</section>
+{% endmacro %}
+
+{% macro problem() %}
+<section class="grid grid-2 problem" aria-labelledby="problem-h">
+  <div class="card"><h2 id="problem-h">The problem</h2>
+    <p>Registrations rarely match who actually turns up, dishes are eaten at different rates, and safety buffers are often guesswork. Too little food leaves guests hungry. Too much wastes money and leaves surplus with nowhere to go.</p></div>
+  <div class="card"><h2>What Just Enough does</h2>
+    <p>It turns that uncertainty into an adjustable, explainable plan: estimate attendance, size every dish, choose how much shortage risk you accept, see the expected leftover, and prepare a donation plan using a directory of food-distribution NGOs.</p></div>
+</section>
+{% endmacro %}
+
+{% macro steps() %}
+<ol class="steps" aria-label="How it works">
+  <li><span class="step-n" aria-hidden="true">1</span><div><h3>Describe the event</h3><p>Guests, registrations, meal, dietary mix and how confident you are in the headcount.</p></div></li>
+  <li><span class="step-n" aria-hidden="true">2</span><div><h3>Set dishes &amp; assumptions</h3><p>Portion sizes, consumption rates, no-show rate and optional costs. Every change recalculates.</p></div></li>
+  <li><span class="step-n" aria-hidden="true">3</span><div><h3>Choose your risk</h3><p>Slide between shortage and surplus and see the quantity, leftover and cost trade-off.</p></div></li>
+  <li><span class="step-n" aria-hidden="true">4</span><div><h3>Plan the surplus</h3><p>Review leftovers, set handoff timing, pick an NGO and track the donation status you record.</p></div></li>
+</ol>
+{% endmacro %}
+
+{% macro sustain() %}
+<section class="card sustain" aria-labelledby="sustain-h">
+  <h2 id="sustain-h">Less waste, more sharing</h2>
+  <p>Food that is cooked but never eaten carries the water, energy and money that went into it. Better quantity planning cuts surplus at the source, and a prepared donation plan gives the surplus that remains a chance to reach people instead of a bin.</p>
+  <p class="hint">All figures in this app are planning estimates. Food-safety timing is guidance, not certified advice.</p>
+</section>
+{% endmacro %}

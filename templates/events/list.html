@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Events</h1><p class="lead">All saved event plans.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('main.event_new') }}">Plan an Event</a>
+</header>
+<form class="card search-bar" method="get" action="{{ url_for('main.events') }}" role="search">
+  <label for="q" class="sr-only">Search events</label>
+  <input id="q" name="q" type="search" value="{{ q }}" placeholder="Search by event name or type">
+  <button class="btn btn-secondary" type="submit">Search</button>
+  {% if q %}<a class="btn btn-ghost" href="{{ url_for('main.events') }}">Clear</a>{% endif %}
+</form>
+<section class="card">
+{% if events %}
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Event</th><th>Type</th><th>Date</th><th>Meal</th><th class="num">Guests</th><th class="num">Dishes</th><th class="num">Food (kg)</th><th>Actions</th></tr></thead>
+    <tbody>{% for e in events %}
+    <tr>
+      <td data-label="Event"><a href="{{ url_for('main.event_detail', event_id=e.id) }}"><strong>{{ e.name }}</strong></a></td>
+      <td data-label="Type">{{ e.event_type }}</td>
+      <td data-label="Date">{{ e.event_date|fmt_date }}</td>
+      <td data-label="Meal">{{ e.meal_type|capitalize }}</td>
+      <td data-label="Guests" class="num">{{ e.expected_guests|num }}</td>
+      <td data-label="Dishes" class="num">{{ e.dish_count }}</td>
+      <td data-label="Food (kg)" class="num">{{ e.total_kg|num(1) if e.total_kg is not none else '–' }}</td>
+      <td data-label="Actions" class="row-actions">
+        <a class="btn btn-small btn-secondary" href="{{ url_for('main.planner', event_id=e.id) }}">Plan</a>
+        <a class="btn btn-small btn-secondary" href="{{ url_for('main.event_edit', event_id=e.id) }}">Edit</a>
+        <a class="btn btn-small btn-secondary" href="{{ url_for('main.report', event_id=e.id) }}">Report</a>
+      </td>
+    </tr>{% endfor %}</tbody></table></div>
+{% else %}
+  {{ empty("No events found" if q else "No events yet", "Try a different search." if q else "Create an event plan to estimate food quantities.", url_for('main.event_new'), "Plan an Event") }}
+{% endif %}
+</section>
+{% endblock %}

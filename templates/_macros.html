@@ -1,0 +1,63 @@
+{% macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'home' %}<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>
+{%- elif name == 'chart' %}<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>
+{%- elif name == 'calendar' %}<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+{%- elif name == 'list' %}<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>
+{%- elif name == 'heart' %}<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/>
+{%- elif name == 'users' %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>
+{%- elif name == 'file' %}<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>
+{%- elif name == 'plus' %}<path d="M12 5v14M5 12h14"/>
+{%- elif name == 'scale' %}<path d="M12 3v18M5 21h14M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>
+{%- elif name == 'leaf' %}<path d="M20 4C9 4 4 9 4 15c0 3 1.5 5 4 5 6 0 12-5 12-16z"/><path d="M4 20c3-6 7-9 12-11"/>
+{%- elif name == 'menu' %}<path d="M4 6h16M4 12h16M4 18h16"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro tip(text) -%}
+<span class="tip" tabindex="0" role="note" aria-label="{{ text }}" data-tip="{{ text }}">?</span>
+{%- endmacro %}
+
+{% macro field(name, label, form, errors, type='text', help='', required=False, attrs='', tooltip='') -%}
+{% set v = form.get(name) %}
+<div class="field{{ ' has-error' if errors.get(name) }}">
+  <label for="f_{{ name }}">{{ label }}{% if required %}<span class="req" aria-hidden="true"> *</span>{% endif %}{% if tooltip %} {{ tip(tooltip) }}{% endif %}</label>
+  <input id="f_{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ '' if v is none else v }}" {{ attrs|safe }}{% if required %} required{% endif %}
+         {% if help or errors.get(name) %}aria-describedby="d_{{ name }}"{% endif %}{% if errors.get(name) %} aria-invalid="true"{% endif %}>
+  {% if help %}<small class="hint" id="d_{{ name }}">{{ help }}</small>{% endif %}
+  {% if errors.get(name) %}<small class="field-error" role="alert" id="d_{{ name }}">{{ errors[name] }}</small>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro select(name, label, options, current, errors, required=False, labels=None) -%}
+<div class="field{{ ' has-error' if errors.get(name) }}">
+  <label for="f_{{ name }}">{{ label }}{% if required %}<span class="req" aria-hidden="true"> *</span>{% endif %}</label>
+  <select id="f_{{ name }}" name="{{ name }}"{% if required %} required{% endif %}{% if errors.get(name) %} aria-invalid="true"{% endif %}>
+    {% for o in options %}<option value="{{ o }}" {{ 'selected' if current == o }}>{{ labels[o] if labels else o }}</option>{% endfor %}
+  </select>
+  {% if errors.get(name) %}<small class="field-error" role="alert">{{ errors[name] }}</small>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro badge(status) -%}
+<span class="badge badge-{{ status }}">{{ status|status_label }}</span>
+{%- endmacro %}
+
+{% macro stat(label, value, note='', ico='chart', tone='') -%}
+<div class="stat {{ tone }}">
+  <span class="stat-icon">{{ icon(ico) }}</span>
+  <div class="stat-body"><span class="stat-label">{{ label }}</span><span class="stat-value">{{ value }}</span>{% if note %}<span class="stat-note">{{ note }}</span>{% endif %}</div>
+</div>
+{%- endmacro %}
+
+{% macro empty(title, text, href=None, cta='') -%}
+<div class="empty"><p class="empty-title">{{ title }}</p><p>{{ text }}</p>{% if href %}<a class="btn btn-primary" href="{{ href }}">{{ cta }}</a>{% endif %}</div>
+{%- endmacro %}
+
+{% macro delete_form(action, text, label='Delete', title='Please confirm') -%}
+<form method="post" action="{{ action }}" class="inline" data-confirm="{{ text }}" data-confirm-title="{{ title }}" data-confirm-ok="{{ label }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-danger">{{ label }}</button>
+</form>
+{%- endmacro %}

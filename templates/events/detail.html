@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat, badge, delete_form, empty %}
+{% block title %}{{ event.name }}{% endblock %}
+{% block content %}
+{% set t = result.totals %}
+<header class="page-head">
+  <div><h1>{{ event.name }}</h1>
+  <p class="lead">{{ event.event_type }} · {{ event.event_date|fmt_date }} · {{ event.meal_type|capitalize }}</p></div>
+  <div class="head-actions">
+    <a class="btn btn-primary" href="{{ url_for('main.planner', event_id=event.id) }}">Plan quantities</a>
+    <a class="btn btn-secondary" href="{{ url_for('main.event_edit', event_id=event.id) }}">Edit</a>
+    {{ delete_form(url_for('main.event_delete', event_id=event.id), 'Delete “' ~ event.name ~ '” and all of its dishes, estimates and donation plans? This cannot be undone.', 'Delete event', 'Delete this event?') }}
+  </div>
+</header>
+
+<section class="grid grid-4">
+  {{ stat("Expected guests", event.expected_guests|num, event.registration_count|num ~ " registered", "users") }}
+  {{ stat("Estimated attendance", result.attendance.estimated_attendance|num, "range ~" ~ result.attendance.attendance_low|num ~ "–" ~ result.attendance.attendance_high|num ~ " (estimate)", "calendar") }}
+  {{ stat("Recommended food", t.recommended_kg|num(1) ~ " kg", t.recommended_servings|num ~ " servings", "scale") }}
+  {{ stat("Expected leftover", t.expected_leftover_kg|num(1) ~ " kg", "estimate, not a guarantee", "leaf", "tone-accent") }}
+</section>
+
+{% for w in result.warnings %}<div class="alert alert-warning">{{ w }}</div>{% endfor %}
+
+<section class="grid grid-2">
+  <div class="card">
+    <h2>Dishes</h2>
+    {% if result.dishes %}
+    <div class="table-wrap"><table class="data compact">
+      <thead><tr><th>Dish</th><th class="num">Servings</th><th class="num">Kg</th><th class="num">Leftover kg</th></tr></thead>
+      <tbody>{% for d in result.dishes %}<tr><td data-label="Dish">{{ d.name }}</td><td data-label="Servings" class="num">{{ d.recommended_servings }}</td>
+        <td data-label="Kg" class="num">{{ d.recommended_kg|num(2) }}</td><td data-label="Leftover kg" class="num">{{ d.expected_leftover_kg|num(2) }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{{ empty("No dishes yet", "Add dishes to calculate quantities.", url_for('main.planner', event_id=event.id), "Add dishes") }}{% endif %}
+  </div>
+  <div class="card">
+    <h2>Event information</h2>
+    <dl class="facts">
+      <dt>Confidence in attendance</dt><dd>{{ event.confidence_pct|num }}%</dd>
+      <dt>Vegetarian guests</dt><dd>{{ event.veg_percent|num }}%</dd>
+      <dt>Dietary requirements</dt><dd>{{ tags|join(', ') if tags else 'None listed' }}</dd>
+      <dt>Notes</dt><dd>{{ event.notes or 'None' }}</dd>
+    </dl>
+    <div class="button-row">
+      <a class="btn btn-secondary" href="{{ url_for('main.risk', event_id=event.id) }}">Shortage / surplus risk</a>
+      <a class="btn btn-secondary" href="{{ url_for('main.report', event_id=event.id) }}">Full report</a>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Donation plans</h2>
+    <a class="btn btn-secondary" href="{{ url_for('main.donation_new', event_id=event.id) }}">Plan donation</a></div>
+  {% if donations %}
+  <div class="table-wrap"><table class="data compact"><thead><tr><th>NGO</th><th>Quantity</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for d in donations %}<tr><td data-label="NGO">{{ d.ngo_name or 'Not selected yet' }}</td><td data-label="Quantity">{{ d.total_kg|num(2) }} kg</td>
+    <td data-label="Status">{{ badge(d.status) }}</td><td><a href="{{ url_for('main.donation_detail', donation_id=d.id) }}">Open</a></td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No donation plans yet for this event.</p>{% endif %}
+</section>
+{% endblock %}

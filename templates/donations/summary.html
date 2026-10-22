@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Donation summary · {{ d.event_name }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}">
+</head><body class="print-page">
+<p class="no-print"><a href="{{ url_for('main.donation_detail', donation_id=d.id) }}">← Back</a> · <button type="button" data-print>Print</button></p>
+<pre class="summary-text">{{ d.summary_text }}</pre>
+<script src="{{ url_for('static', filename='js/print.js') }}"></script>
+</body></html>

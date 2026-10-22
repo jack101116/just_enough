@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import tip %}
+{% block title %}Risk explorer · {{ event.name }}{% endblock %}
+{% block content %}
+{% set t = result.totals %}
+<header class="page-head">
+  <div><h1>Shortage &amp; surplus risk</h1>
+  <p class="lead"><a href="{{ url_for('main.event_detail', event_id=event.id) }}">{{ event.name }}</a> · move the slider to see the trade-off</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('main.planner', event_id=event.id) }}">Back to planner</a>
+</header>
+<div id="warnings" class="warnings"></div>
+<section class="card risk-panel" id="risk-panel" data-preview-url="{{ url_for('main.preview', event_id=event.id) }}" data-saved="{{ a.shortage_risk_pct }}" data-currency="{{ currency }}">
+  <div class="slider-block">
+    <label for="risk-slider">Acceptable shortage risk: <strong id="risk-label">{{ a.shortage_risk_pct|num }}%</strong> {{ tip(help.shortage_risk_pct) }}</label>
+    <input id="risk-slider" type="range" min="{{ ranges.shortage_risk_pct[0] }}" max="{{ ranges.shortage_risk_pct[1] }}" step="1" value="{{ a.shortage_risk_pct|int }}">
+    <div class="slider-scale"><span>More food, less risk of running out</span><span>Less food, more risk of running out</span></div>
+  </div>
+  <div class="grid grid-4 risk-stats">
+    <div class="stat"><div class="stat-body"><span class="stat-label">Recommended food</span><span class="stat-value" id="r-kg">{{ t.recommended_kg|num(1) }} kg</span></div></div>
+    <div class="stat tone-accent"><div class="stat-body"><span class="stat-label">Expected leftover</span><span class="stat-value" id="r-leftover">{{ t.expected_leftover_kg|num(1) }} kg</span></div></div>
+    <div class="stat"><div class="stat-body"><span class="stat-label">Estimated food cost</span><span class="stat-value" id="r-cost">{{ (currency ~ (t.food_cost|num(0))) if t.food_cost is not none else 'No cost data' }}</span></div></div>
+    <div class="stat"><div class="stat-body"><span class="stat-label">Estimated surplus cost</span><span class="stat-value" id="r-surplus">{{ (currency ~ (t.surplus_cost|num(0))) if t.surplus_cost is not none else 'No cost data' }}</span></div></div>
+  </div>
+  <p id="r-delta" class="delta" role="status" aria-live="polite"></p>
+  <form method="post" action="{{ url_for('main.risk_apply', event_id=event.id) }}" class="form-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="shortage_risk_pct" id="risk-apply-value" value="{{ a.shortage_risk_pct|int }}">
+    <button class="btn btn-primary" type="submit">Apply this risk setting to the plan</button>
+  </form>
+</section>
+
+<section class="grid grid-2">
+  <div class="card"><h2>Food vs. leftover at each risk level</h2>
+    <div id="chart-curve" class="curve-chart" role="img" aria-label="Chart of recommended and leftover kilograms by risk level"></div>
+    <p class="legend"><span class="dot"></span> recommended kg <span class="dot dot-alt"></span> expected leftover kg</p></div>
+  <div class="card"><h2>The trade-off</h2>
+    <p>Preparing more food makes running out less likely, but raises the amount that may be left over. Preparing less saves food and money, but guests are more likely to find a dish empty.</p>
+    <p>The risk setting sizes each dish using a documented normal-approximation model. The shortage chance it shows is a <strong>model output, not a calibrated probability</strong>; check it against your own attendance history.</p>
+    <p>Safety buffer is kept separate (currently {{ a.safety_buffer_pct|num }}%) so protection is never counted twice.</p>
+  </div>
+</section>
+<section class="card"><h2>Comparison table</h2>
+  <div class="table-wrap"><table class="data compact" id="curve-table">
+    <thead><tr><th>Shortage risk</th><th class="num">Recommended kg</th><th class="num">Expected leftover kg</th><th class="num">Food cost</th><th class="num">Surplus cost</th></tr></thead>
+    <tbody>{% for c in result.curve %}<tr data-risk="{{ c.risk_pct }}" class="{{ 'is-selected' if c.selected }}"><td data-label="Shortage risk">{{ c.risk_pct|num }}%</td><td data-label="Recommended kg" class="num">{{ c.recommended_kg|num(1) }}</td>
+      <td data-label="Expected leftover kg" class="num">{{ c.expected_leftover_kg|num(1) }}</td><td data-label="Food cost" class="num">{{ (currency ~ (c.food_cost|num(0))) if c.food_cost is not none else '–' }}</td>
+      <td data-label="Surplus cost" class="num">{{ (currency ~ (c.surplus_cost|num(0))) if c.surplus_cost is not none else '–' }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<script type="application/json" id="initial-result">{{ result|tojson }}</script>
+{% endblock %}

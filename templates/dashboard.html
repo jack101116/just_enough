@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat, badge, empty %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Dashboard</h1><p class="lead">Live figures from your saved event plans.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('main.event_new') }}">Plan an Event</a>
+</header>
+
+<section class="grid grid-4" aria-label="Key figures">
+  {{ stat("Planned events", stats.events|num, "saved plans", "calendar") }}
+  {{ stat("Expected guests", stats.guests|num, "across all events", "users") }}
+  {{ stat("Estimated food", stats.total_kg|num(1) ~ " kg", "recommended to prepare", "scale") }}
+  {{ stat("Potential surplus", stats.surplus_kg|num(1) ~ " kg", "expected leftover (estimate)", "leaf", "tone-accent") }}
+</section>
+
+<section class="grid grid-2">
+  <div class="card">
+    <h2>Recommended food by event <span class="muted">(kg)</span></h2>
+    {% if chart_events %}
+    {% set peak = chart_events|map(attribute='total_kg')|max %}
+    <div class="bars" role="list">
+      {% for e in chart_events %}
+      <div class="bar-row" role="listitem">
+        <a class="bar-label" href="{{ url_for('main.event_detail', event_id=e.id) }}">{{ e.name }}</a>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (e.total_kg / peak * 100)|round(1) }}%"></div>
+          {% if e.leftover_kg %}<div class="bar-fill bar-fill-alt" style="width: {{ (e.leftover_kg / peak * 100)|round(1) }}%"></div>{% endif %}</div>
+        <span class="bar-value">{{ e.total_kg|num(1) }} / {{ (e.leftover_kg or 0)|num(1) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="legend"><span class="dot"></span> recommended kg <span class="dot dot-alt"></span> expected leftover kg</p>
+    {% else %}{{ empty("No estimates yet", "Create an event and add dishes to see quantities here.", url_for('main.event_new'), "Plan an Event") }}{% endif %}
+  </div>
+  <div class="card">
+    <h2>Donation pipeline</h2>
+    {% if stats.donations %}
+    <ul class="status-list">
+      {% for s in donation_statuses %}<li>{{ badge(s) }}<strong>{{ status_counts.get(s, 0) }}</strong></li>{% endfor %}
+    </ul>
+    <p class="muted">Statuses are records entered by organisers. {{ stats.donated_kg|num(1) }} kg is marked Completed.</p>
+    <a class="btn btn-secondary" href="{{ url_for('main.donations') }}">View donations</a>
+    {% else %}{{ empty("No donation plans yet", "Open an event, then choose “Plan donation” to start.") }}{% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Recent events</h2>
+  {% if events %}
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Event</th><th>Date</th><th class="num">Guests</th><th class="num">Food (kg)</th><th class="num">Surplus (kg)</th><th></th></tr></thead>
+    <tbody>{% for e in events %}
+      <tr><td data-label="Event"><a href="{{ url_for('main.event_detail', event_id=e.id) }}">{{ e.name }}</a></td>
+      <td data-label="Date">{{ e.event_date|fmt_date }}</td><td data-label="Guests" class="num">{{ e.expected_guests|num }}</td>
+      <td data-label="Food (kg)" class="num">{{ e.total_kg|num(1) if e.total_kg is not none else '–' }}</td>
+      <td data-label="Surplus (kg)" class="num">{{ e.leftover_kg|num(1) if e.leftover_kg is not none else '–' }}</td>
+      <td><a class="btn btn-small btn-secondary" href="{{ url_for('main.planner', event_id=e.id) }}">Plan</a></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}{{ empty("No events yet", "Create your first event plan to get started.", url_for('main.event_new'), "Plan an Event") }}{% endif %}
+</section>
+{% endblock %}

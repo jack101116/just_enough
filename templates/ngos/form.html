@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Add organisation{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Add an organisation</h1><p class="lead">Only add organisations you have verified yourself. Avoid personal contact details of private individuals.</p></div></header>
+<form method="post" class="card form" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    {{ field('name', 'Organisation name', form, errors, required=True, attrs='maxlength="140"') }}
+    {{ field('city', 'City', form, errors) }}
+    {{ field('service_areas', 'Service areas', form, errors, help='Neighbourhoods or zones, separated by commas.') }}
+    {{ field('food_types', 'Food types accepted', form, errors, help='e.g. Cooked meals, Packaged food') }}
+    {{ field('contact_person', 'Contact person (organisational role)', form, errors) }}
+    {{ field('phone', 'Phone', form, errors, type='tel') }}
+    {{ field('email', 'Email', form, errors, type='email') }}
+    {{ field('address', 'Address', form, errors) }}
+  </div>
+  <div class="field"><label for="f_notes">Notes</label><textarea id="f_notes" name="notes" rows="3" maxlength="500">{{ form.get('notes', '') }}</textarea></div>
+  <div class="form-actions"><button class="btn btn-primary" type="submit">Save organisation</button><a class="btn btn-ghost" href="{{ url_for('main.ngos') }}">Cancel</a></div>
+</form>
+{% endblock %}

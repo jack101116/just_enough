@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Just Enough{% endblock %} · Just Enough</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/design.css') }}">
+</head>
+<body>
+{% from "_macros.html" import icon %}
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+  <div class="nav-inner">
+    <a class="brand" href="{{ url_for('main.index') }}">Just Enough</a>
+    <button class="menu-btn" type="button" data-nav-toggle aria-expanded="false" aria-controls="min-nav">Menu</button>
+    <nav class="min-nav" id="min-nav" aria-label="Main navigation">{% include "_navlinks.html" %}</nav>
+    <a class="btn btn-primary btn-small nav-cta" href="{{ url_for('main.event_new') }}">Plan an Event</a>
+  </div>
+</header>
+<main id="main" class="content">
+  {% include "_flashes.html" %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="site-footer">Estimates are planning aids, not guarantees. Food-safety guidance is not certified advice.</footer>
+{% include "_confirm.html" %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

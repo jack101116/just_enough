@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ ngo.name }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ ngo.name }}</h1>
+  <p class="lead">{% if ngo.is_sample %}<span class="badge badge-sample">SAMPLE · fictional</span>{% else %}<span class="badge badge-muted">{{ ngo.source_label }}</span>{% endif %}</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('main.ngos') }}">Back to directory</a></header>
+{% if ngo.is_sample %}<div class="alert alert-warning">This is a fictional demonstration record. Phone and email are placeholders. Do not use them to contact anyone.</div>{% endif %}
+<section class="card"><dl class="facts">
+  <dt>City</dt><dd>{{ ngo.city or '–' }}</dd><dt>Service areas</dt><dd>{{ ngo.service_areas or '–' }}</dd>
+  <dt>Food types accepted</dt><dd>{{ ngo.food_types or '–' }}</dd><dt>Contact person</dt><dd>{{ ngo.contact_person or '–' }}</dd>
+  <dt>Phone</dt><dd>{{ ngo.phone or '–' }}</dd><dt>Email</dt><dd>{{ ngo.email or '–' }}</dd><dt>Address</dt><dd>{{ ngo.address or '–' }}</dd>
+  <dt>Notes</dt><dd>{{ ngo.notes or '–' }}</dd></dl>
+  <p class="hint">Availability is not tracked. Always confirm directly with the organisation.</p></section>
+{% endblock %}

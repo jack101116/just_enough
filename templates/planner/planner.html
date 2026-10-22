@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "_macros.html" import tip, stat, empty %}
+{% block title %}Plan quantities · {{ event.name }}{% endblock %}
+{% block content %}
+{% set av = a.as_dict() %}
+<header class="page-head">
+  <div><h1>Plan quantities</h1>
+  <p class="lead"><a href="{{ url_for('main.event_detail', event_id=event.id) }}">{{ event.name }}</a> · {{ event.event_date|fmt_date }} · {{ event.expected_guests|num }} expected guests</p></div>
+  <div class="head-actions">
+    <a class="btn btn-secondary" href="{{ url_for('main.risk', event_id=event.id) }}">Risk explorer</a>
+    <a class="btn btn-secondary" href="{{ url_for('main.report', event_id=event.id) }}">Report</a>
+  </div>
+</header>
+
+{% if errors %}<div class="alert alert-error" role="alert">Some values are invalid and nothing was saved. See the highlighted fields.</div>{% endif %}
+<div id="warnings" class="warnings">{% for w in result.warnings %}<div class="alert alert-warning">{{ w }}</div>{% endfor %}</div>
+
+<form id="planner-form" method="post" action="{{ url_for('main.planner', event_id=event.id) }}" novalidate
+      data-preview-url="{{ url_for('main.preview', event_id=event.id) }}" data-currency="{{ currency }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="planner-layout">
+    <div class="planner-main">
+      <section class="card">
+        <h2>Assumptions <span class="muted">(editable, recalculates instantly)</span></h2>
+        <div class="form-grid assumptions">
+          {% for key, label, step in [('confidence_pct','Attendance confidence (%)',1),('no_show_rate_pct','No-show rate (%)',1),('shortage_risk_pct','Acceptable shortage risk (%)',1),('safety_buffer_pct','Safety buffer (%)',1),('portion_adjust_pct','Portion size adjustment (%)',1),('veg_percent','Vegetarian guests (%)',1)] %}
+          <div class="field{{ ' has-error' if errors.get(key) }}">
+            <label for="a_{{ key }}">{{ label }} {{ tip(help[key]) }}</label>
+            <input id="a_{{ key }}" name="{{ key }}" type="number" min="{{ ranges[key][0] }}" max="{{ ranges[key][1] }}" step="{{ step }}" value="{{ form.get(key, av[key]) }}" data-live>
+            <small class="hint">Valid range {{ ranges[key][0] }} to {{ ranges[key][1] }}</small>
+            {% if errors.get(key) %}<small class="field-error" role="alert">{{ errors[key] }}</small>{% endif %}
+          </div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Dishes</h2>
+        {% if result.dishes %}
+        <div class="table-wrap"><table class="data planner-table">
+          <thead><tr><th>Dish</th>
+            <th>Portion (g) {{ tip('Grams per serving before the global portion adjustment.') }}</th>
+            <th>Consumption rate (%) {{ tip('Share of eligible attending guests expected to take this dish.') }}</th>
+            <th>Cost / kg ({{ currency }})</th><th class="num">Servings</th><th class="num">Kg</th><th class="num">Leftover kg</th><th class="num">Cost</th><th></th></tr></thead>
+          <tbody>{% for d in result.dishes %}{% set id = d.event_dish_id %}
+            <tr data-ed="{{ id }}">
+              <td data-label="Dish"><strong>{{ d.name }}</strong><br><span class="muted">{{ d.food_category }} · {{ d.dietary_category|diet_label }}</span></td>
+              {% for fld, val, st in [('portion_g', d.portion_g, '1'), ('rate_pct', d.rate_pct, '1'), ('cost_per_kg', d.cost_per_kg, '0.01')] %}
+              {% set nm = 'ed_' ~ id ~ '_' ~ fld %}
+              <td data-label="{{ fld|replace('_',' ')|capitalize }}"><input class="cell-input{{ ' has-error' if errors.get(nm) }}" aria-label="{{ d.name }} {{ fld|replace('_',' ') }}" name="{{ nm }}" type="number" min="0" step="{{ st }}"
+                 value="{{ form.get(nm, '' if val is none else val) }}" data-live>{% if errors.get(nm) %}<small class="field-error" role="alert">{{ errors[nm] }}</small>{% endif %}</td>{% endfor %}
+              <td data-label="Servings" class="num" data-out="rec_servings">{{ d.recommended_servings }}</td>
+              <td data-label="Kg" class="num" data-out="rec_kg">{{ d.recommended_kg|num(2) }}</td>
+              <td data-label="Leftover kg" class="num" data-out="leftover_kg">{{ d.expected_leftover_kg|num(2) }}</td>
+              <td data-label="Cost" class="num" data-out="cost">{{ (currency ~ (d.food_cost|num(0))) if d.food_cost is not none else '–' }}</td>
+              <td><button type="submit" class="btn btn-small btn-ghost" formaction="{{ url_for('main.dish_remove', event_id=event.id, event_dish_id=id) }}" formnovalidate data-confirm="Remove {{ d.name }} from this plan?" data-confirm-title="Remove dish?" data-confirm-ok="Remove">Remove</button></td>
+            </tr>{% endfor %}</tbody>
+          <tfoot><tr><th>Total</th><td></td><td></td><td></td>
+            <td class="num" data-total="servings">{{ result.totals.recommended_servings|num }}</td>
+            <td class="num" data-total="kg">{{ result.totals.recommended_kg|num(2) }}</td>
+            <td class="num" data-total="leftover">{{ result.totals.expected_leftover_kg|num(2) }}</td>
+            <td class="num" data-total="cost">{{ (currency ~ (result.totals.food_cost|num(0))) if result.totals.food_cost is not none else '–' }}</td><td></td></tr></tfoot>
+        </table></div>
+        {% else %}{{ empty("No dishes in this plan", "Add a dish from the catalogue or create a custom dish below.") }}{% endif %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" {{ 'disabled' if not result.dishes }}>Save assumptions &amp; recalculate</button>
+          <span id="live-status" class="muted" role="status" aria-live="polite"></span>
+        </div>
+      </section>
+    </div>
+
+    <aside class="planner-side">
+      <section class="card" id="summary-card">
+        <h2>Result</h2>
+        <dl class="facts">
+          <dt>Estimated attendance {{ tip('Expected guests × (1 − no-show rate). An estimate, not a known value.') }}</dt><dd id="out-attendance">{{ result.attendance.estimated_attendance|num(0) }} <span class="muted">(~{{ result.attendance.attendance_low|num }}–{{ result.attendance.attendance_high|num }})</span></dd>
+          <dt>Recommended food</dt><dd id="out-kg">{{ result.totals.recommended_kg|num(1) }} kg</dd>
+          <dt>Expected leftover</dt><dd id="out-leftover">{{ result.totals.expected_leftover_kg|num(1) }} kg</dd>
+          <dt>Estimated food cost</dt><dd id="out-cost">{{ (currency ~ (result.totals.food_cost|num(0))) if result.totals.food_cost is not none else 'No cost data' }}</dd>
+          <dt>Estimated surplus cost</dt><dd id="out-surplus-cost">{{ (currency ~ (result.totals.surplus_cost|num(0))) if result.totals.surplus_cost is not none else 'No cost data' }}</dd>
+        </dl>
+        <p class="hint">Estimates use the documented model on the report page. Known inputs: guests, portions, rates and costs you entered.</p>
+      </section>
+      <section class="card"><h2>Recommended kg by dish</h2><div id="chart-dishes" class="bars" aria-live="polite"></div>
+        <p class="legend"><span class="dot"></span> recommended <span class="dot dot-alt"></span> expected leftover</p></section>
+    </aside>
+  </div>
+</form>
+
+<section class="card">
+  <h2>Why these numbers?</h2>
+  <div id="explanations">{% for d in result.dishes %}
+    <details><summary>{{ d.name }}</summary><p data-explain="{{ d.event_dish_id }}">{{ d.explanation }}</p></details>{% endfor %}</div>
+</section>
+
+<section class="grid grid-2">
+  <form class="card form" method="post" action="{{ url_for('main.dish_add', event_id=event.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Add from catalogue</h2>
+    {% if catalog %}
+    <div class="field"><label for="dish_id">Dish</label>
+      <select id="dish_id" name="dish_id">{% for d in catalog %}<option value="{{ d.id }}">{{ d.name }} ({{ d.dietary_category|diet_label }})</option>{% endfor %}</select></div>
+    <button class="btn btn-secondary" type="submit">Add dish</button>
+    {% else %}<p class="muted">All catalogue dishes are already in this plan.</p>{% endif %}
+  </form>
+  <form class="card form" method="post" action="{{ url_for('main.dish_new_for_event', event_id=event.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Create a custom dish</h2>
+    <div class="form-grid">
+      <div class="field"><label for="nd_name">Dish name</label><input id="nd_name" name="name" required maxlength="80"></div>
+      <div class="field"><label for="nd_cat">Food category</label><select id="nd_cat" name="food_category">{% for c in food_categories %}<option>{{ c }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="nd_diet">Dietary category</label><select id="nd_diet" name="dietary_category">{% for c in diet_categories %}<option value="{{ c }}">{{ c|diet_label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="nd_p">Portion (g)</label><input id="nd_p" name="portion_g" type="number" min="1" max="2000" step="1" required></div>
+      <div class="field"><label for="nd_r">Consumption rate (%)</label><input id="nd_r" name="rate_pct" type="number" min="0" max="100" step="1" required></div>
+      <div class="field"><label for="nd_c">Cost per kg ({{ currency }}, optional)</label><input id="nd_c" name="cost_per_kg" type="number" min="0" step="0.01"></div>
+    </div>
+    <button class="btn btn-secondary" type="submit">Create &amp; add</button>
+  </form>
+</section>
+<script type="application/json" id="initial-result">{{ result|tojson }}</script>
+{% endblock %}

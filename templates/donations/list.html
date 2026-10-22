@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, empty %}
+{% block title %}Donations{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Donations</h1><p class="lead">Surplus donation plans and their recorded status. Start a plan from an event.</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('main.events') }}">Choose an event</a></header>
+<nav class="filter-chips" aria-label="Filter by status">
+  <a class="chip{{ ' is-active' if not status }}" href="{{ url_for('main.donations') }}">All</a>
+  {% for s in donation_statuses %}<a class="chip{{ ' is-active' if status == s }}" href="{{ url_for('main.donations', status=s) }}">{{ s|status_label }}</a>{% endfor %}
+</nav>
+<section class="card">
+{% if donations %}
+<div class="table-wrap"><table class="data"><thead><tr><th>Event</th><th>NGO</th><th class="num">Quantity</th><th>Handoff deadline</th><th>Status</th><th></th></tr></thead>
+<tbody>{% for d in donations %}<tr><td data-label="Event">{{ d.event_name }}</td><td data-label="NGO">{{ d.ngo_name or 'Not selected' }}</td><td data-label="Quantity" class="num">{{ d.total_kg|num(2) }} kg</td>
+<td data-label="Handoff deadline">{{ d.handoff_deadline|fmt_datetime }}</td><td data-label="Status">{{ badge(d.status) }}</td><td><a class="btn btn-small btn-secondary" href="{{ url_for('main.donation_detail', donation_id=d.id) }}">Open</a></td></tr>{% endfor %}</tbody></table></div>
+{% else %}{{ empty("No donation plans", "Open an event and choose “Plan donation” to create one.", url_for('main.events'), "View events") }}{% endif %}
+</section>
+{% endblock %}

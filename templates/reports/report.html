@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}Report · {{ event.name }}{% endblock %}
+{% block content %}
+{% set t = result.totals %}{% set a = result.assumptions %}
+<header class="page-head no-print"><div><h1>Event report</h1><p class="lead">{{ event.name }}</p></div>
+  <div class="head-actions"><button type="button" class="btn btn-primary" data-print>Print / save as PDF</button>
+  <a class="btn btn-secondary" href="{{ url_for('main.report_csv', event_id=event.id) }}">Download CSV</a>
+  <a class="btn btn-ghost" href="{{ url_for('main.reports') }}">All reports</a></div></header>
+<article class="report">
+  <h1 class="print-only">Just Enough · Event report</h1>
+  <section class="card"><h2>{{ event.name }}</h2>
+    <dl class="facts facts-2"><dt>Type</dt><dd>{{ event.event_type }}</dd><dt>Date</dt><dd>{{ event.event_date|fmt_date }}</dd><dt>Meal</dt><dd>{{ event.meal_type|capitalize }}</dd>
+    <dt>Expected guests (known input)</dt><dd>{{ event.expected_guests|num }}</dd><dt>Registrations (known input)</dt><dd>{{ event.registration_count|num }}</dd>
+    <dt>Estimated attendance (estimate)</dt><dd>{{ result.attendance.estimated_attendance|num }} (~{{ result.attendance.attendance_low|num }}–{{ result.attendance.attendance_high|num }})</dd>
+    <dt>Vegetarian guests</dt><dd>{{ event.veg_percent|num }}%</dd><dt>Dietary requirements</dt><dd>{{ tags|join(', ') if tags else 'None listed' }}</dd>
+    <dt>Notes</dt><dd>{{ event.notes or 'None' }}</dd><dt>Last saved calculation</dt><dd>{{ calculated|fmt_datetime if calculated else 'Not yet saved' }}</dd></dl></section>
+
+  <section class="card"><h2>Assumptions used (estimates you can edit)</h2>
+    <div class="table-wrap"><table class="data compact"><tbody>
+    {% for key, label in [('confidence_pct','Attendance confidence'),('no_show_rate_pct','No-show rate'),('shortage_risk_pct','Acceptable shortage risk'),('safety_buffer_pct','Safety buffer'),('portion_adjust_pct','Portion adjustment'),('veg_percent','Vegetarian guests')] %}
+    <tr><th scope="row">{{ label }}</th><td>{{ a[key]|num(1) }}%</td><td class="muted">{{ help[key] }}</td></tr>{% endfor %}</tbody></table></div></section>
+
+  <section class="card"><h2>Dish-wise recommendations</h2>
+    <div class="table-wrap"><table class="data compact"><thead><tr><th>Dish</th><th>Diet</th><th class="num">Portion g</th><th class="num">Rate %</th><th class="num">Expected servings</th><th class="num">Recommended servings</th><th class="num">Recommended kg</th><th class="num">Leftover kg</th><th class="num">Modelled shortage</th><th class="num">Food cost</th><th class="num">Surplus cost</th></tr></thead>
+    <tbody>{% for d in result.dishes %}<tr><td data-label="Dish">{{ d.name }}</td><td data-label="Diet">{{ d.dietary_category|diet_label }}</td><td data-label="Portion g" class="num">{{ d.effective_portion_g|num }}</td><td data-label="Rate %" class="num">{{ d.rate_pct|num }}</td>
+      <td data-label="Expected servings" class="num">{{ d.expected_servings|num }}</td><td data-label="Recommended servings" class="num">{{ d.recommended_servings }}</td><td data-label="Recommended kg" class="num">{{ d.recommended_kg|num(2) }}</td>
+      <td data-label="Leftover kg" class="num">{{ d.expected_leftover_kg|num(2) }}</td><td data-label="Modelled shortage" class="num">{{ d.modelled_shortage_pct|num(1) }}%</td>
+      <td data-label="Food cost" class="num">{{ (currency ~ (d.food_cost|num(0))) if d.food_cost is not none else '–' }}</td><td data-label="Surplus cost" class="num">{{ (currency ~ (d.surplus_cost|num(0))) if d.surplus_cost is not none else '–' }}</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><th colspan="5">Total</th><td class="num">{{ t.recommended_servings|num }}</td><td class="num">{{ t.recommended_kg|num(2) }}</td><td class="num">{{ t.expected_leftover_kg|num(2) }}</td><td></td>
+      <td class="num">{{ (currency ~ (t.food_cost|num(0))) if t.food_cost is not none else '–' }}</td><td class="num">{{ (currency ~ (t.surplus_cost|num(0))) if t.surplus_cost is not none else '–' }}</td></tr></tfoot></table></div>
+    {% if t.food_cost is not none and not t.cost_complete %}<p class="hint">Cost totals cover {{ t.cost_dishes }} of {{ t.total_dishes }} dishes (only dishes with a cost per kg).</p>{% endif %}
+    <h3>Why each recommendation was made</h3>
+    <ul class="explain">{% for d in result.dishes %}<li><strong>{{ d.name }}:</strong> {{ d.explanation }}</li>{% endfor %}</ul></section>
+
+  <section class="card"><h2>Shortage-risk setting</h2>
+    <p>Selected acceptable shortage risk: <strong>{{ a.shortage_risk_pct|num }}%</strong>.</p>
+    <div class="table-wrap"><table class="data compact"><thead><tr><th>Risk</th><th class="num">Recommended kg</th><th class="num">Expected leftover kg</th></tr></thead>
+    <tbody>{% for c in result.curve %}<tr class="{{ 'is-selected' if c.selected }}"><td>{{ c.risk_pct|num }}%{{ ' (selected)' if c.selected }}</td><td class="num">{{ c.recommended_kg|num(1) }}</td><td class="num">{{ c.expected_leftover_kg|num(1) }}</td></tr>{% endfor %}</tbody></table></div></section>
+
+  <section class="card"><h2>Donation plan &amp; status</h2>
+    {% if donations %}{% for x in donations %}<div class="donation-block"><p><strong>{{ x.d.ngo_name or 'NGO not selected' }}</strong> {{ badge(x.d.status) }}</p>
+      <ul>{% for i in x.lines %}<li>{{ i.dish_name }}: {{ i.quantity_kg|num(2) }} kg</li>{% endfor %}</ul>
+      <p class="muted">Prepared {{ x.d.prepared_at|fmt_datetime }} · handoff deadline {{ x.d.handoff_deadline|fmt_datetime }}. Status reflects what the organiser recorded, not a confirmed collection unless it says Accepted or Completed.</p></div>{% endfor %}
+    {% else %}<p class="muted">No donation plan has been created for this event.</p>{% endif %}</section>
+
+  <section class="card"><h2>Warnings &amp; limitations</h2>
+    <ul>{% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}{% for n in notes %}<li>{{ n }}</li>{% endfor %}<li>{{ disclaimer }}</li></ul></section>
+</article>
+{% endblock %}

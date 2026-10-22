@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, delete_form, empty %}
+{% block title %}Dish catalogue{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Dish catalogue</h1><p class="lead">Reusable dishes with default portion, consumption rate and cost. Each event keeps its own editable copy.</p></div></header>
+<section class="card">
+{% if catalog %}
+  <div class="table-wrap"><table class="data"><thead><tr><th>Dish</th><th>Category</th><th>Dietary</th><th class="num">Portion (g)</th><th class="num">Rate (%)</th><th class="num">Cost / kg</th><th>Actions</th></tr></thead>
+  <tbody>{% for d in catalog %}<tr>
+    <td data-label="Dish"><strong>{{ d.name }}</strong></td><td data-label="Category">{{ d.food_category }}</td><td data-label="Dietary">{{ d.dietary_category|diet_label }}</td>
+    <td data-label="Portion (g)" class="num">{{ d.default_portion_g|num }}</td><td data-label="Rate (%)" class="num">{{ d.default_rate_pct|num }}</td>
+    <td data-label="Cost / kg" class="num">{{ (currency ~ (d.default_cost_per_kg|num(0))) if d.default_cost_per_kg is not none else '–' }}</td>
+    <td class="row-actions"><a class="btn btn-small btn-secondary" href="{{ url_for('main.dish_edit', dish_id=d.id) }}">Edit</a>
+      {{ delete_form(url_for('main.dish_delete', dish_id=d.id), 'Delete ' ~ d.name ~ ' from the catalogue?', 'Delete', 'Delete dish?') }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}{{ empty("Catalogue is empty", "Add your first dish below, or run seed_db.py for sample dishes.") }}{% endif %}
+</section>
+<form method="post" class="card form" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>Add a dish</h2>
+  <div class="form-grid">
+    {{ field('name', 'Dish name', form, errors, required=True, attrs='maxlength="80"') }}
+    {{ select('food_category', 'Food category', food_categories, form.get('food_category'), errors) }}
+    {{ select('dietary_category', 'Dietary category', diet_categories, form.get('dietary_category'), errors, labels={'vegetarian':'Vegetarian','vegan':'Vegan','non_vegetarian':'Non-vegetarian'}) }}
+    {{ field('portion_g', 'Portion size (g per serving)', form, errors, type='number', required=True, attrs='min="1" max="2000" step="1"') }}
+    {{ field('rate_pct', 'Consumption rate (%)', form, errors, type='number', required=True, attrs='min="0" max="100" step="1"', tooltip='Share of eligible attending guests expected to take this dish.') }}
+    {{ field('cost_per_kg', 'Cost per kg (optional)', form, errors, type='number', attrs='min="0" step="0.01"') }}
+  </div>
+  <div class="form-actions"><button class="btn btn-primary" type="submit">Add dish</button></div>
+</form>
+{% endblock %}

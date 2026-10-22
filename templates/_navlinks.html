@@ -1,0 +1,5 @@
+{% from "_macros.html" import icon %}
+{% set items = [("main.index","index","Home","home"),("main.dashboard","dashboard","Dashboard","chart"),("main.events","events","Events","calendar"),("main.dishes","dishes","Dishes","list"),("main.donations","donations","Donations","heart"),("main.ngos","ngos","NGO directory","users"),("main.reports","reports","Reports","file")] %}
+{% for ep, key, label, ico in items %}
+<a class="nav-link{{ ' is-active' if nav == key }}" href="{{ url_for(ep) }}"{% if nav == key %} aria-current="page"{% endif %}>{{ icon(ico) }}<span>{{ label }}</span></a>
+{% endfor %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, delete_form %}
+{% block title %}Donation · {{ d.event_name }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Donation plan</h1>
+  <p class="lead"><a href="{{ url_for('main.event_detail', event_id=d.event_id) }}">{{ d.event_name }}</a> · {{ badge(d.status) }}</p></div>
+  <div class="head-actions">
+    {% if editable %}<a class="btn btn-secondary" href="{{ url_for('main.donation_edit', donation_id=d.id) }}">Edit</a>{% endif %}
+    <a class="btn btn-secondary" href="{{ url_for('main.donation_summary', donation_id=d.id) }}">Printable summary</a>
+    {% if d.status in ('draft','cancelled') %}{{ delete_form(url_for('main.donation_delete', donation_id=d.id), 'Delete this donation plan?', 'Delete', 'Delete donation plan?') }}{% endif %}
+  </div></header>
+
+<div class="alert alert-info" role="note">Status is a <strong>record kept by you</strong>. This app never contacts an NGO. A donation is only Accepted or Completed once someone records it below.</div>
+
+<section class="grid grid-2">
+  <div class="card"><h2>Food available</h2>
+    <div class="table-wrap"><table class="data compact"><thead><tr><th>Dish</th><th>Category</th><th class="num">Kg</th></tr></thead>
+    <tbody>{% for i in items %}<tr><td data-label="Dish">{{ i.dish_name }}</td><td data-label="Category">{{ i.food_category }}</td><td data-label="Kg" class="num">{{ i.quantity_kg|num(2) }}</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><th colspan="2">Total</th><td class="num">{{ total_kg|num(2) }}</td></tr></tfoot></table></div>
+    <dl class="facts"><dt>Prepared</dt><dd>{{ d.prepared_at|fmt_datetime }}</dd><dt>Handoff deadline</dt><dd>{{ d.handoff_deadline|fmt_datetime }}</dd>
+      <dt>Holding window</dt><dd>{{ window.hours if window.hours is not none else '–' }} h</dd></dl>
+    <div class="alert alert-{{ 'error' if window.level in ('error','warning') else ('warning' if window.level == 'caution' else 'success') }}">{{ window.message }}</div>
+  </div>
+  <div class="card"><h2>Recipient</h2>
+    {% if ngo %}<p><strong>{{ ngo.name }}</strong>{% if ngo.is_sample %} <span class="badge badge-sample">SAMPLE</span>{% endif %}</p>
+    <dl class="facts"><dt>City</dt><dd>{{ ngo.city or '–' }}</dd><dt>Service areas</dt><dd>{{ ngo.service_areas or '–' }}</dd><dt>Phone</dt><dd>{{ ngo.phone or '–' }}</dd><dt>Email</dt><dd>{{ ngo.email or '–' }}</dd></dl>
+    {% if ngo.is_sample %}<p class="hint">Sample directory entry. Verify real contact details independently.</p>{% endif %}
+    {% else %}<p class="muted">No NGO selected yet. Edit the plan to choose one.</p>{% endif %}
+    {% if d.pickup_notes %}<p><strong>Pickup notes:</strong> {{ d.pickup_notes }}</p>{% endif %}
+    <p class="hint">{{ disclaimer }}</p>
+  </div>
+</section>
+
+<section class="card"><h2>Update status</h2>
+  {% if options %}
+  <form method="post" action="{{ url_for('main.donation_status', donation_id=d.id) }}" class="status-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label for="note">Note (optional)</label><input id="note" name="note" maxlength="300" placeholder="e.g. Called coordinator, pickup agreed for 8 pm"></div>
+    <div class="button-row">{% for o in options %}<button class="btn {{ 'btn-danger' if o.status == 'cancelled' else 'btn-secondary' }}" type="submit" name="new_status" value="{{ o.status }}"
+      {% if o.status == 'cancelled' %}data-confirm="Cancel this donation plan?" data-confirm-title="Cancel donation?" data-confirm-ok="Cancel donation"{% endif %}>{{ o.label }}</button>{% endfor %}</div>
+    {% for o in options if not o.ok %}<p class="hint">{{ o.label }}: {{ o.reason }}</p>{% endfor %}
+  </form>
+  {% else %}<p class="muted">This donation is {{ d.status|status_label|lower }} and can no longer change.</p>{% endif %}
+  <h3>History</h3>
+  <ul class="timeline">{% for l in log %}<li><strong>{{ l.to_status|status_label }}</strong> <span class="muted">{{ l.changed_at|fmt_datetime }}</span>{% if l.note %}<br>{{ l.note }}{% endif %}</li>{% endfor %}</ul>
+</section>
+<section class="card"><h2>Donation-ready summary</h2><pre class="summary-text">{{ d.summary_text }}</pre></section>
+{% endblock %}

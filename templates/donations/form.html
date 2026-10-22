@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}{{ 'Plan donation' if mode == 'new' else 'Edit donation' }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ 'Plan a surplus donation' if mode == 'new' else 'Edit donation plan' }}</h1>
+  <p class="lead"><a href="{{ url_for('main.event_detail', event_id=event.id) }}">{{ event.name }}</a> · {{ event.event_date|fmt_date }}</p></div></header>
+<div class="alert alert-warning disclaimer" role="note"><strong>Food-safety guidance, not certified advice.</strong> {{ disclaimer }}</div>
+{% if not result.dishes %}
+<section class="card">{{ empty("No dishes in this event", "Add dishes and estimates first so surplus can be reviewed.", url_for('main.planner', event_id=event.id), "Open planner") }}</section>
+{% else %}
+<form method="post" class="form" novalidate id="donation-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if errors %}<div class="alert alert-error" role="alert">Please fix the highlighted fields.</div>{% endif %}
+  <section class="card">
+    <h2>1. Review surplus by dish</h2>
+    <p class="hint">Expected leftover is an estimate. Enter the quantity actually available, which cannot exceed what was planned. Tick the dishes to donate.</p>
+    {% if errors.get('items') %}<small class="field-error" role="alert">{{ errors['items'] }}</small>{% endif %}
+    <div class="table-wrap"><table class="data compact">
+      <thead><tr><th>Donate</th><th>Dish</th><th>Category</th><th class="num">Planned kg</th><th class="num">Expected leftover kg</th><th>Available surplus (kg)</th></tr></thead>
+      <tbody>{% for d in result.dishes %}{% set id = d.event_dish_id %}
+      {% set inc = (form.get('include_' ~ id) == 'on') if form else (id in selected_items) %}
+      {% set qty = form.get('qty_' ~ id) if form else (selected_items.get(id) if id in selected_items else (d.expected_leftover_kg|round(2))) %}
+      <tr><td data-label="Donate"><input type="checkbox" name="include_{{ id }}" aria-label="Donate {{ d.name }}" {{ 'checked' if inc }}></td>
+        <td data-label="Dish">{{ d.name }}</td><td data-label="Category">{{ d.food_category }}</td>
+        <td data-label="Planned kg" class="num">{{ d.recommended_kg|num(2) }}</td><td data-label="Expected leftover kg" class="num">{{ d.expected_leftover_kg|num(2) }}</td>
+        <td data-label="Available surplus (kg)"><input class="cell-input" type="number" step="0.01" min="0" max="{{ d.recommended_kg }}" name="qty_{{ id }}" aria-label="Available kg of {{ d.name }}" value="{{ qty }}">
+          {% if errors.get('qty_' ~ id) %}<small class="field-error" role="alert">{{ errors['qty_' ~ id] }}</small>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+
+  <section class="card">
+    <h2>2. Timing</h2>
+    <div class="form-grid">
+      <div class="field{{ ' has-error' if errors.get('prepared_at') }}"><label for="prepared_at">Food prepared at <span class="req">*</span></label>
+        <input id="prepared_at" name="prepared_at" type="datetime-local" required value="{{ form.get('prepared_at', '') }}">
+        {% if errors.get('prepared_at') %}<small class="field-error" role="alert">{{ errors['prepared_at'] }}</small>{% endif %}</div>
+      <div class="field{{ ' has-error' if errors.get('handoff_deadline') }}"><label for="handoff_deadline">Proposed serving / handoff deadline <span class="req">*</span></label>
+        <input id="handoff_deadline" name="handoff_deadline" type="datetime-local" required value="{{ form.get('handoff_deadline', '') }}">
+        {% if errors.get('handoff_deadline') %}<small class="field-error" role="alert">{{ errors['handoff_deadline'] }}</small>{% endif %}</div>
+    </div>
+    <div id="window-note" class="alert alert-info" role="status" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Choose an NGO <span class="muted">(optional for a draft)</span></h2>
+    <div class="alert alert-info">The directory below lists <strong>sample, fictional</strong> organisations unless you added your own. Selecting one only records your intention. It does not contact anyone. <a href="{{ url_for('main.ngos') }}" target="_blank" rel="noopener">Browse the directory</a></div>
+    <div class="field{{ ' has-error' if errors.get('ngo_id') }}"><label for="ngo_id">NGO</label>
+      <select id="ngo_id" name="ngo_id"><option value="">Not selected yet</option>
+        {% for n in ngos %}<option value="{{ n.id }}" {{ 'selected' if (form.get('ngo_id')|string) == (n.id|string) }}>{{ n.name }}{% if n.city %}, {{ n.city }}{% endif %}{% if n.is_sample %} [SAMPLE]{% endif %}</option>{% endfor %}</select>
+      {% if errors.get('ngo_id') %}<small class="field-error" role="alert">{{ errors['ngo_id'] }}</small>{% endif %}</div>
+    <div class="field"><label for="pickup_notes">Pickup notes</label><textarea id="pickup_notes" name="pickup_notes" rows="2" maxlength="500">{{ form.get('pickup_notes', '') }}</textarea></div>
+  </section>
+
+  <section class="card">
+    <h2>4. Food-safety acknowledgement</h2>
+    <label class="check{{ ' has-error' if errors.get('safety_ack') }}"><input type="checkbox" name="safety_ack" {{ 'checked' if form.get('safety_ack') == 'on' or (mode == 'edit' and not form.get('safety_ack') is not none and donation and donation.safety_acknowledged) }} required>
+      I have read the food-safety guidance above and understand it is not certified advice.</label>
+    {% if errors.get('safety_ack') %}<small class="field-error" role="alert">{{ errors['safety_ack'] }}</small>{% endif %}
+  </section>
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ 'Save donation plan (Draft)' if mode == 'new' else 'Save changes' }}</button>
+    <a class="btn btn-ghost" href="{{ url_for('main.event_detail', event_id=event.id) if mode == 'new' else url_for('main.donation_detail', donation_id=donation.id) }}">Cancel</a></div>
+</form>
+{% endif %}
+{% endblock %}

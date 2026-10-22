@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, tip %}
+{% block title %}{{ 'Plan an event' if mode == 'new' else 'Edit event' }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>{{ 'Plan an Event' if mode == 'new' else 'Edit event' }}</h1>
+  <p class="lead">{{ 'Tell us about the event. You can fine-tune portions and risk on the next screen.' if mode == 'new' else event.name }}</p></div>
+</header>
+<form method="post" class="card form" novalidate data-validate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if errors %}<div class="alert alert-error" role="alert">Some fields need attention. Details are shown next to each field.</div>{% endif %}
+  <fieldset><legend>Event details</legend>
+    <div class="form-grid">
+      {{ field('name', 'Event name', form, errors, required=True, attrs='maxlength="120"') }}
+      {{ select('event_type', 'Event type', event_types, form.get('event_type'), errors, required=True) }}
+      {{ field('event_date', 'Event date', form, errors, type='date', required=True) }}
+      {{ select('meal_type', 'Meal type', meal_types, form.get('meal_type'), errors, required=True, labels={'breakfast':'Breakfast','lunch':'Lunch','dinner':'Dinner','snacks':'Snacks'}) }}
+    </div>
+  </fieldset>
+  <fieldset><legend>Guests</legend>
+    <div class="form-grid">
+      {{ field('expected_guests', 'Expected guest count', form, errors, type='number', required=True, attrs='min="1" max="100000" step="1"', help='Your headcount planning figure.') }}
+      {{ field('registration_count', 'Registration count', form, errors, type='number', attrs='min="0" max="100000" step="1"', help='Informational: compared with expected guests to flag mismatches.') }}
+      {{ field('confidence_pct', 'Confidence in attendance (%)', form, errors, type='number', attrs='min="0" max="100" step="1"', tooltip='How sure you are of the expected guest count. Lower confidence widens the safety cushion; it does not reduce the average attendance.') }}
+      {{ field('veg_percent', 'Strictly vegetarian guests (%)', form, errors, type='number', attrs='min="0" max="100" step="1"', help='The rest are assumed to eat non-vegetarian dishes too.') }}
+    </div>
+    <div class="field"><span class="label">Other dietary requirements</span>
+      <div class="checks">
+        {% for t in dietary_tags %}<label class="check"><input type="checkbox" name="dietary_tags" value="{{ t }}" {{ 'checked' if t in (form.getlist('dietary_tags') if form.getlist is defined else form.get('dietary_tags', [])) }}> {{ t }}</label>{% endfor %}
+      </div></div>
+  </fieldset>
+  {% if mode == 'new' %}
+  <fieldset><legend>Planned dishes</legend>
+    {% if catalog %}
+    <p class="hint">Pick dishes from the catalogue. You can adjust portions, rates and costs next, or add custom dishes there.</p>
+    <div class="checks checks-wide">
+      {% for d in catalog %}<label class="check"><input type="checkbox" name="dish_ids" value="{{ d.id }}" {{ 'checked' if d.id in selected }}> {{ d.name }} <span class="muted">({{ d.dietary_category|diet_label }})</span></label>{% endfor %}
+    </div>
+    {% else %}<p class="hint">The dish catalogue is empty. You can create dishes on the next screen.</p>{% endif %}
+  </fieldset>
+  {% endif %}
+  <div class="field"><label for="f_notes">Notes or additional requirements</label>
+    <textarea id="f_notes" name="notes" rows="3" maxlength="2000">{{ form.get('notes', '') }}</textarea></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">{{ 'Create event' if mode == 'new' else 'Save changes' }}</button>
+    <a class="btn btn-ghost" href="{{ url_for('main.events') if mode == 'new' else url_for('main.event_detail', event_id=event.id) }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
