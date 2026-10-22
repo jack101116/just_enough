@@ -103,6 +103,8 @@ donation status rules, reports, CSV export, persistence and essential routes.
 
 ```
 app.py  config.py  init_db.py  seed_db.py  requirements.txt
+
+Round 2 introduced a contemporary minimalist UI design along with enhancements in event and food organizing, real-time food amount and price calculations, food shortage explorer and estimated leftovers calculator. It also featured an additional module for managing excess food donations with NGO database for searching organizations that will accept these donations and track their current status with printable reports and CSV exports.
 food_planner/   models (db.py), routes.py, repository.py, donation_repo.py, seed.py,
                 services/estimation.py, services/donations.py, utils/
 templates/      Jinja2 templates (base.html and index.html are specific to this design)
